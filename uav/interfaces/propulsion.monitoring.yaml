@@ -1,0 +1,25 @@
+interface: PROPULSION.MONITORING
+version: 1.2.0
+description: Motor health and vibration telemetry from an ESC module to the flight controller.
+transport:
+- mavlink2
+providers:
+- Motor Controller Module
+consumers:
+- Flight Controller
+- Ground Control Station
+required_messages:
+- UAV_MOTOR_STATUS
+- UAV_MOTOR_VIBRATION
+optional_messages: []
+commands:
+- MAV_CMD_UAV_MOTOR_TEST
+dependencies: {}
+requirements:
+- SRS-PROP-001
+- SRS-PROP-003
+aspects:
+  power: 28VDC-40W
+  mechanical: M3x4-100mm
+  timing: ''
+history: []

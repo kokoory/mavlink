@@ -1,0 +1,8 @@
+UAV_MOTOR_STATUS:
+  interface: PROPULSION.MONITORING
+  requirements:
+  - SRS-PROP-001
+UAV_MOTOR_VIBRATION:
+  interface: PROPULSION.MONITORING
+  requirements:
+  - SRS-PROP-003

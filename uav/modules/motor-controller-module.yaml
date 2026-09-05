@@ -1,0 +1,27 @@
+module: Motor Controller Module
+vendor: ABC
+version: 2.1.0
+description: ''
+kind: actuator
+ports:
+  can: DroneCAN
+  power: 28VDC
+aspects:
+  power: 28VDC-40W
+  mechanical: M3x4-100mm
+  timing: PTP
+interfaces:
+  PROPULSION.MONITORING: 1.3.0
+  CORE.TIMEBASE: 1.0.0
+transport:
+- mavlink2
+messages:
+  tx:
+  - UAV_MOTOR_STATUS
+  - UAV_MOTOR_VIBRATION
+  rx:
+  - TIMESYNC
+  - SYSTEM_TIME
+commands:
+- MAV_CMD_UAV_MOTOR_TEST
+capabilities: {}

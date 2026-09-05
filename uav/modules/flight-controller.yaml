@@ -1,0 +1,25 @@
+module: Flight Controller
+vendor: InHouse
+version: 1.0.0
+description: ''
+kind: fc
+ports: {}
+aspects:
+  power: ''
+  mechanical: ''
+  timing: PTP
+interfaces:
+  CORE.TIMEBASE: 1.0.0
+  PROPULSION.MONITORING: 1.2.0
+transport:
+- mavlink2
+messages:
+  tx:
+  - TIMESYNC
+  - SYSTEM_TIME
+  rx:
+  - UAV_MOTOR_STATUS
+  - UAV_MOTOR_VIBRATION
+commands:
+- MAV_CMD_UAV_MOTOR_TEST
+capabilities: {}

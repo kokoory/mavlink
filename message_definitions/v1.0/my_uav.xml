@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<mavlink>
+  <!-- Custom dialect generated and maintained by tools/mavstudio. -->
+  <!-- Upstream definitions are never modified; this file only adds. -->
+  <!-- Message and command ids must stay inside the project id_space. -->
+  <include>common.xml</include>
+  <dialect>100</dialect>
+  <enums>
+    <enum name="MAV_CMD">
+      <description>Commands added by this dialect.</description>
+      <entry value="52700" name="MAV_CMD_UAV_MOTOR_TEST">
+        <description>Spin one motor at a fixed output for a bench test.</description>
+        <param index="1" label="Motor"> Motor index (UAV_MOTOR)</param>
+        <param index="2" label="Throttle" units="%">Output level</param>
+        <param index="3" label="Duration" units="s">Test duration</param>
+      </entry>
+    </enum>
+    <enum name="UAV_MOTOR">
+      <description>Motor position on the airframe</description>
+      <entry value="0" name="UAV_MOTOR_FRONT_LEFT"/>
+      <entry value="1" name="UAV_MOTOR_FRONT_RIGHT"/>
+      <entry value="2" name="UAV_MOTOR_REAR_LEFT"/>
+      <entry value="3" name="UAV_MOTOR_REAR_RIGHT"/>
+    </enum>
+  </enums>
+  <messages>
+    <message id="52700" name="UAV_MOTOR_VIBRATION">
+      <description>Motor-mounted IMU vibration data.</description>
+      <field type="uint64_t" name="time_usec" units="us">Timestamp (UNIX Epoch or time since system boot).</field>
+      <field type="uint8_t" name="motor_id" enum="UAV_MOTOR">Motor this sample came from.</field>
+      <field type="float" name="accel_x" units="m/s/s">Vibration acceleration, X body axis.</field>
+      <field type="float" name="accel_y" units="m/s/s">Vibration acceleration, Y body axis.</field>
+      <field type="float" name="accel_z" units="m/s/s">Vibration acceleration, Z body axis.</field>
+      <field type="float" name="gyro_x" units="rad/s">Angular rate, X body axis.</field>
+      <field type="float" name="gyro_y" units="rad/s">Angular rate, Y body axis.</field>
+      <field type="float" name="gyro_z" units="rad/s">Angular rate, Z body axis.</field>
+    </message>
+    <message id="52701" name="UAV_MOTOR_STATUS">
+      <description>Per-motor health and command tracking.</description>
+      <field type="uint64_t" name="time_usec" units="us">Timestamp.</field>
+      <field type="uint8_t" name="motor_id" enum="UAV_MOTOR">Motor index.</field>
+      <field type="uint16_t" name="rpm" units="rpm">Measured shaft speed.</field>
+      <field type="uint16_t" name="commanded">Commanded output, 0..65535.</field>
+      <field type="int16_t" name="temperature_c" units="cdegC">ESC temperature.</field>
+      <field type="float" name="current_a" units="A">Phase current.</field>
+    </message>
+  </messages>
+</mavlink>

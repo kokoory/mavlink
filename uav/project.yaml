@@ -1,0 +1,24 @@
+name: SWAN-H200 Interface Project
+description: ''
+definitions_dir: message_definitions/v1.0
+build_dir: build/mavstudio
+dialect:
+  name: my_uav
+  path: message_definitions/v1.0/my_uav.xml
+  base: common.xml
+  dialect_number: '100'
+  version: '3'
+  namespace: MY_UAV
+id_space:
+  messages:
+  - 52700
+  - 52799
+  commands:
+  - 52700
+  - 52799
+vehicles:
+  SWAN-H200:
+    description: ''
+    profiles:
+    - flight
+    - development

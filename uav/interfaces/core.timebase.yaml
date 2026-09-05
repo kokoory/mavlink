@@ -1,0 +1,19 @@
+interface: CORE.TIMEBASE
+version: 1.0.0
+description: Common time base for all modules.
+transport:
+- mavlink2
+providers:
+- Flight Controller
+consumers:
+- Motor Controller Module
+required_messages:
+- TIMESYNC
+- SYSTEM_TIME
+optional_messages: []
+commands: []
+dependencies: {}
+requirements: []
+aspects:
+  timing: ''
+history: []

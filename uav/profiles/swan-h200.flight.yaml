@@ -1,0 +1,57 @@
+vehicle: SWAN-H200
+profile: flight
+description: flight configuration for SWAN-H200
+components:
+- FC
+- GCS
+interfaces: []
+link:
+  name: Primary telemetry link
+  bitrate: 115200
+  mavlink_version: 2
+  signing: false
+  headroom: 0.2
+capabilities:
+  camera_protocol: true
+  ftp: false
+  gimbal_protocol: true
+messages:
+  ATTITUDE:
+    tx:
+    - FC
+    rx:
+    - GCS
+    rate_hz: 50.0
+  GLOBAL_POSITION_INT:
+    tx:
+    - FC
+    rx:
+    - GCS
+    rate_hz: 10.0
+  HEARTBEAT:
+    tx:
+    - FC
+    rx:
+    - GCS
+    rate_hz: 1.0
+  SYS_STATUS:
+    tx:
+    - FC
+    rx:
+    - GCS
+    rate_hz: 2.0
+  UAV_MOTOR_STATUS:
+    tx:
+    - ESC
+    rx:
+    - FC
+    - GCS
+    rate_hz: 10.0
+  UAV_MOTOR_VIBRATION:
+    tx:
+    - ESC
+    rx:
+    - FC
+    - GCS
+    rate_hz: 100.0
+commands: {}

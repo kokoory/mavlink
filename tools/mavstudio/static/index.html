@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UAV MAVLink Studio</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <h1>UAV MAVLink Studio</h1>
+  <span class="chip">UAV <b id="hdrVehicle">-</b></span>
+  <span class="chip">Profile
+    <select id="profileSelect"></select>
+  </span>
+  <span class="chip">MAVLink <b id="hdrMavlink">2.0</b></span>
+  <span class="spacer"></span>
+  <button id="btnValidate">Validate</button>
+  <button id="btnBuild">Build</button>
+  <button id="btnIcd">ICD</button>
+  <button id="btnReload">Reload</button>
+</header>
+
+<main>
+  <nav id="nav"></nav>
+  <section class="middle" id="middle"></section>
+  <aside id="aside"><div class="empty">Select a row.</div></aside>
+</main>
+
+<div id="toast"></div>
+<script src="/static/app.js"></script>
+</body>
+</html>

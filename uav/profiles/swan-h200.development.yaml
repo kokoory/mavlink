@@ -1,0 +1,21 @@
+vehicle: SWAN-H200
+profile: development
+description: development configuration for SWAN-H200
+components:
+- FC
+- GCS
+interfaces: []
+link:
+  name: Primary telemetry link
+  bitrate: 115200
+  mavlink_version: 2
+  signing: false
+  headroom: 0.2
+capabilities:
+  debug_messages: true
+  ftp: true
+  log_download: true
+  param_ext: true
+  telemetry_imu: true
+messages: {}
+commands: {}

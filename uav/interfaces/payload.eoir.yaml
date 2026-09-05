@@ -1,0 +1,25 @@
+interface: PAYLOAD.EOIR
+version: 2.0.0
+description: 'EO/IR imaging payload: control over MAVLink, video over RTP, tracks over DDS.'
+transport:
+- mavlink2
+- rtp
+- dds
+providers:
+- EO Camera A
+consumers:
+- Ground Control Station
+required_messages:
+- CAMERA_INFORMATION
+- GIMBAL_DEVICE_ATTITUDE_STATUS
+- dds:TargetTrack
+optional_messages:
+- uci:TargetStatus
+commands: []
+dependencies: {}
+requirements: []
+aspects:
+  network: 1000BASE-T
+  power: 28VDC-25W
+  video: H.265
+history: []

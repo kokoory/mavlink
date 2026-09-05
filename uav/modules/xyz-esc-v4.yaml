@@ -1,0 +1,21 @@
+module: XYZ ESC v4
+vendor: XYZ
+version: 4.0.0
+description: ''
+kind: actuator
+installed: false
+ports: {}
+aspects:
+  power: 28VDC-40W
+  mechanical: M3x4-100mm
+interfaces:
+  PROPULSION.MONITORING: 1.2.0
+transport:
+- mavlink2
+messages:
+  tx:
+  - UAV_MOTOR_STATUS
+  rx:
+  - TIMESYNC
+commands: []
+capabilities: {}
