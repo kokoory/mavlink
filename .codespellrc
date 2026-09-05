@@ -1,0 +1,9 @@
+# Aerospace abbreviations that codespell reads as typos.
+#   ned   North-East-Down, the MAVLink reference frame
+#   sitl  Software In The Loop
+# The message_definitions CI job already passes --ignore-words-list=ned; putting
+# the list here means every codespell invocation agrees, including the
+# repository-wide one.
+[codespell]
+ignore-words-list = ned,sitl
+skip = *.pdf,./km-gcs/docs/architecture/KM-GCS-Architecture-v0.1.txt

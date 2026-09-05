@@ -46,6 +46,81 @@ UAV 프로파일 관리자 + MOSA 인터페이스 관리자. **5계층 구조**�
 
 ---
 
+## 2-1. km-gcs (독립형 GCS, C++/Qt)
+
+`km-gcs/` — QGroundControl 을 포크하지 않고 새로 만드는 Ground Control System.
+설계 기준서는 `km-gcs/docs/architecture/KM-GCS-Architecture-v0.1.pdf`.
+
+> **왜 별도 레포가 아니라 이 저장소 안인가**: 사용자 결정입니다. 제가 별도 레포를
+> 권했으나(툴체인 혼재, "MAVLink는 어댑터 중 하나" 원칙과 구조 역전) 이 저장소 안으로
+> 결정되었습니다. 완화책: km-gcs 는 루트 CMakeLists 에 연결되지 않는 **독립 빌드**이고,
+> CI 워크플로도 분리(`.github/workflows/km_gcs.yml`)했으며, MAVLink 정의 경로는
+> `KMGCS_MAVLINK_REPO` **변수 하나**로 참조합니다. 나중에 떼어낼 때 그 변수만 바꾸고
+> submodule 을 추가하면 됩니다. 새 최상위 디렉터리라 upstream 머지 충돌은 없습니다.
+
+**핵심 규칙: 어댑터 경계 아래에서는 MAVLink 도 Qt 도 이름조차 쓸 수 없습니다.**
+빌드가 강제합니다(`cmake/KmGcsLayering.cmake`). 링크 폐포 검사 + 소스/헤더 grep 검사
+2중. 둘 다 **위반을 일부러 주입해서 실제로 실패하는 것을 확인**했습니다.
+이 때문에 UdpLink 는 QUdpSocket 이 아니라 POSIX 소켓입니다 — 그래야 코어 전체가
+Qt 없이 빌드·테스트되고 P2 가 검사 가능해집니다.
+
+MAVLink 헤더는 **mavstudio 프로파일에서 빌드 시점에 생성**됩니다. 프로파일에서 기능을
+끄면 GCS 빌드에서도 빠집니다. 이게 두 도구를 잇는 지점입니다.
+
+```
+km-gcs/
+  cmake/KmGcsLayering.cmake   계층 강제 (빌드 실패)
+  cmake/KmGcsMavlink.cmake    mavstudio 프로파일 -> MAVLink C 헤더 생성
+  core/domain/                순수 C++ 값 타입 (Qt·MAVLink 금지)
+  core/event/                 타입소거 EventBus
+  core/vehicle/               VehicleRegistry(신원) / VehicleStateStore(상태)
+  core/app/                   GcsCore, Composition(유일한 조립 지점)
+  links/                      ILink + POSIX UdpLink
+  protocols/mavlink/          파서 + Translator (여기만 MAVLink 를 앎)
+  adapters/autopilot/         PX4 / ArduPilot 제품 의미론
+  apps/headless/              UI 없는 검증용 station
+  docs/architecture/adr/      설계 기준서와 다르게 간 결정 6건
+```
+
+빌드·테스트:
+```bash
+cmake -S km-gcs -B build/km-gcs -G Ninja && cmake --build build/km-gcs
+ctest --test-dir build/km-gcs --output-on-failure
+./build/km-gcs/km-gcs-headless --port 14550   # PX4/ArduPilot SITL 에 붙임
+```
+
+### 설계 기준서와 다르게 간 6가지 (전부 ADR 있음)
+
+| ADR | 기준서 | 구현 | 이유 |
+| --- | --- | --- | --- |
+| 0001 | P1/P2 를 원칙으로 서술 | 빌드 실패로 강제, POSIX 소켓 | 검사 없는 원칙은 소원 |
+| 0002 | UUID 하나 (다른 절에선 sysid) | handle + address + hardware id | MAVLink 는 UUID 를 안 줌, sysid 는 재할당됨 |
+| 0003 | sourceTime 출처 미정의 | **차량 시계마다 TimeBase 하나** | time_boot_ms 와 절대시계는 서로 다른 시계 |
+| 0004 | ACK = 명령 완료 | Accepted → Confirmed 2단계 | ACCEPTED 는 "해보겠다"라는 뜻 |
+| 0005 | 닫힌 std::variant | 타입소거 | variant 는 플러그인이 확장 불가 (P7 과 모순) |
+| 0006 | 어댑터 2개가 모드 매핑 | AVAILABLE_MODES 우선 | ArduPilot 84개 모드, 의미가 기체종류에 의존 |
+
+### km-gcs 에서 밟은 함정
+
+1. **`time_boot_ms` 와 TIMESYNC 의 `tc1` 은 다른 시계입니다.** TIMESYNC 오프셋으로
+   time_boot_ms 를 변환하면 타임스탬프가 수십 년 어긋납니다. 헤드리스를 실제로
+   돌려서 `age 1788575238010 ms` 로 발견했습니다. 회귀 테스트 있음.
+   `time_usec` 은 "UNIX epoch **또는** boot 기준"이라 수신측이 추정해야 합니다
+   (1e15 µs 이상이면 epoch).
+2. **staleness 는 우리 시계의 도착 시각으로 잽니다.** 차량이 주장하는 타임스탬프로
+   재면 age 가 시각동기 품질에 의존하게 되어 거꾸로 됩니다.
+3. **생성된 MAVLink 헤더는 `SYSTEM` include** 로 넣어야 합니다. 우리 경고 수준을
+   못 맞춥니다. 우리 쪽 경고를 낮추는 건 잘못된 거래입니다.
+4. **CMake `$<JOIN:${list},|>` 는 동작하지 않습니다.** 리스트가 genex 평가 전에
+   COMMAND 인자로 쪼개집니다. `list(JOIN ...)` 을 쓰세요. 이 버그 때문에 grep 가드가
+   조용히 아무것도 검사하지 않고 통과했습니다.
+5. **MAVLink 구조체 필드는 packed 라 참조로 바인딩 못 합니다.** range-for 대신 인덱싱.
+6. **`M_PI` 는 ISO C++ 가 아닙니다.** `-std=c++20`(gnu++ 아님)에서는 정의되지 않습니다.
+7. **`AVAILABLE_MODES.properties` 에 "advertise" 플래그는 없습니다.**
+   `MAV_MODE_PROPERTY_ADVANCED` 와 `MAV_MODE_PROPERTY_NOT_USER_SELECTABLE` 뿐입니다.
+
+---
+
 ## 3. 모듈 지도
 
 | 파일 | 역할 |
@@ -130,7 +205,12 @@ UAV 프로파일 관리자 + MOSA 인터페이스 관리자. **5계층 구조**�
    CI는 리포지토리와 동기화된 서브모듈을 쓰므로 문제없습니다.
    pip 휠로 테스트할 때 이 에러가 보이면 **우리 코드 문제가 아닙니다.**
 
-10. **upstream에는 원래 ID 충돌이 있습니다** (paparazzi 180–184 ↔ ardupilotmega 180–184).
+11. **codespell 이 저장소 전체에 돕니다** (`codespell --skip="*.xml"`).
+   `NED`, `SITL` 같은 항공 약어를 오타로 잡습니다. 루트 `.codespellrc` 에
+   ignore 목록을 뒀습니다. **주의: mavstudio 첫 커밋이 이걸 깨뜨린 채로 푸시됐고
+   이번에 고쳤습니다.** 새 코드 추가 시 `codespell --skip="*.xml"` 를 직접 돌려보세요.
+
+12. **upstream에는 원래 ID 충돌이 있습니다** (paparazzi 180–184 ↔ ardupilotmega 180–184).
    같이 쓰이지 않는 다이얼렉트라 문제없음. 그래서 `catalog.conflicts()` (전역)와
    `catalog.conflicts_in(closure)` (실제 오류)를 구분합니다. 검사는 후자를 쓰세요.
 
@@ -209,6 +289,14 @@ python3 -m mavstudio build --lang C --generated /tmp/gen_c
 - Qt UI: 8개 섹션 렌더링, 폼 라이브 검증, 인스펙터, 필터 — offscreen 스모크 테스트
 - 단위 테스트 **46개** 통과, ruff clean, `./scripts/format_xml.sh -c` 통과
 
+**km-gcs 에서 검증됨 (실제 실행)**
+- 클린 빌드, 5개 테스트 바이너리 전부 통과 (Qt 없이)
+- 계층 가드 2종: 위반 주입 → 빌드 실패 확인 → 원복
+- pymavlink 로 만든 실제 MAVLink 스트림을 헤드리스 station 이 수신:
+  PX4 quad 발견, mode=Mission, RTK fixed 18 sats, 22.3 V 76%, age/time quality 정상
+- TIMESYNC 왕복 완료 → `time coarse`
+- UDP 소켓으로 쓰레기 바이트 주입 후에도 다음 프레임 정상 파싱
+
 **안 된 것 / 남은 것**
 - `mavstudio profile add` (새 프로파일 CLI 생성) 없음 — `init --profiles` 로만 만듦
 - 웹/Qt UI 에서 인터페이스·모듈 **생성/편집** 불가 (조회만). 생성은 CLI 전용
@@ -216,6 +304,12 @@ python3 -m mavstudio build --lang C --generated /tmp/gen_c
 - GCS Capability Discovery 미구현 (실기체 연결 기능 자체가 없음)
 - PX4/QGC 소스 스캔해서 "실제 사용중/정의만 존재" 표시 미구현
 - Conformance test 자동 실행(실제 링크에서 트래픽 검증) 미구현 — 현재는 정적 검사만
+- **km-gcs**: QML UI, Mission, Parameter, Payload, Plugin, Conformance 러너,
+  DDS/ROS2/UCI 어댑터 전부 미구현 (MVP 0~7단계까지만)
+- **km-gcs**: 실제 PX4/ArduPilot SITL 로는 미검증 (이 컨테이너에 SITL 없음).
+  pymavlink 로 만든 합성 스트림으로만 확인했습니다.
+- **km-gcs**: 다중 링크 라우팅, MAVLink signing, CommandTracker(2단계 추적의
+  타임아웃/재시도 실행부) 미구현 — 타입과 정책은 있으나 러너가 없음
 
 ---
 

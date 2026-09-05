@@ -111,7 +111,7 @@ class TestParserRoundTrip(unittest.TestCase):
         )
 
     def test_no_double_hyphen_in_comments(self):
-        # A "--" inside an XML comment makes the document unparseable.
+        # A "--" inside an XML comment makes the document unparsable.
         document = dialect_xml([], "3", "0", [], [], header_comment="a -- b")
         self.assertNotIn("--", document.split("<!--")[1].split("-->")[0])
 

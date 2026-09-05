@@ -1,0 +1,34 @@
+name: KM-GCS
+
+# Independent of the MAVLink definition workflows: km-gcs is a C++ project that
+# happens to live in this repository, and its CI should neither slow theirs down
+# nor be triggered by an XML edit that does not affect it.
+on:
+  push:
+    paths: ['km-gcs/**', 'tools/mavstudio/**', 'message_definitions/**',
+            '.github/workflows/km_gcs.yml']
+  pull_request:
+    paths: ['km-gcs/**', 'tools/mavstudio/**', 'message_definitions/**',
+            '.github/workflows/km_gcs.yml']
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install pymavlink pyyaml
+          sudo apt-get update
+          sudo apt-get install -y ninja-build
+      - name: Configure
+        run: cmake -S km-gcs -B build/km-gcs -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
+      # The build itself is the layering check: kmgcs_forbid_link and
+      # kmgcs_forbid_symbols fail it if MAVLink or Qt reach the core.
+      - name: Build
+        run: cmake --build build/km-gcs
+      - name: Test
+        run: ctest --test-dir build/km-gcs --output-on-failure
