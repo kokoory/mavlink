@@ -1,0 +1,3 @@
+(sym_lib_table
+  (lib (name "dual_sx1280")(type "KiCad")(uri "${KIPRJMOD}/dual_sx1280.kicad_sym")(options "")(descr "Project symbols"))
+)
