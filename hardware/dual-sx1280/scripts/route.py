@@ -589,7 +589,7 @@ class Router:
             track_ok, via_ok = masks_for(self.W, ni, w, relaxed=self.relaxed)
             path = astar(track_ok, via_ok, tgt, tree, bbox_of(tree))
             if path is None:
-                # undo staged items of this net
+                self.last_fail = f"{e[3]}.{e[0].GetNumber()}"
                 return False
             segs, vias = path_to_items(path)
             self.commit(net, segs, vias, w, set(path))

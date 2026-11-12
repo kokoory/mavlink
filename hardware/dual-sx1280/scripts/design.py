@@ -46,7 +46,7 @@ PARTS = {
     "C4": dict(symbol="Device:C", footprint="Capacitor_SMD:C_0402_1005Metric", value="100n",
                pos=(12.9, 28.6), rot=90, side="F", mpn="CL05B104KO5NNNC", lcsc="C1525"),
     "C5": dict(symbol="Device:C", footprint="Capacitor_SMD:C_0402_1005Metric", value="100n",
-               pos=(3.0, 20.3), rot=0, side="F", mpn="CL05B104KO5NNNC", lcsc="C1525"),
+               pos=(4.9, 20.2), rot=0, side="F", mpn="CL05B104KO5NNNC", lcsc="C1525"),
     "C6": dict(symbol="Device:C", footprint="Capacitor_SMD:C_0402_1005Metric", value="100n",
                pos=(2.0, 25.6), rot=90, side="F", mpn="CL05B104KO5NNNC", lcsc="C1525"),
     "C7": dict(symbol="Device:C", footprint="Capacitor_SMD:C_0402_1005Metric", value="1u",
