@@ -54,4 +54,20 @@ python3 export_fab.py                  # 거버/드릴/BOM/CPL/미리보기
 ## 진행 로그
 - [완료] 자료 수집, design.py, 라이브러리, 회로도(넷리스트 대조 PASS)
 - [완료] 배치(코트야드 겹침 0), 존/킵아웃, RF 트레이스
-- [진행 중] 자동배선 → DRC → 제조 파일
+- [완료] 자동배선 (route.py): DRC 오류 0 / 미연결 0 / 경고 4(starved_thermal), PCB 넷 대조 PASS
+- [완료] 제조 출력 fab/ (거버 zip, 드릴, bom_jlcpcb.csv, cpl_jlcpcb.csv, bom_full.csv), docs/ 미리보기
+
+### 라우터(route.py) 핵심 사항 — 수정 시 주의
+- 순서: QFN VSS→EP 연결 + EP 서멀비아 → QFN 도그본 팬아웃(스텁+비아, 2줄 엇갈림) → 수동소자 GND 비아
+  → 전원(+3V3, +5V, 0.25/0.2 mm) → 신호(0.15 mm, rip-up & reroute) → GND 스티칭 → 나머지 GND 팬아웃 → 미사용 비아/스텁 제거.
+- 팬아웃 비아 셀은 해당 핀이 트리에 합류할 때만 트리에 포함(`pad_extra`). 넷 트리에 바로 넣으면 다핀 넷이 섬으로 갈라짐(실제 버그였음).
+- U.FL 풋프린트에 전 층 킵아웃(`*.Cu`)이 있음 → 반대면 부품도 그 자리에 못 둠(C5 이동 이유).
+- 패드 판정은 roundrect 모서리까지 정확히(`geom_dist`), 아니면 트랙 끝이 패드 밖에서 끝나 미연결 발생.
+- 핀 재배정 이력: B_NSS PB12→PA11, LED_A PB8→PA12, LED_B PB9→PA15 (QFN 모서리 혼잡 해소).
+- 1회 실행 1~5분 (python 순수 A*, 0.05 mm 그리드). 무작위 넷 순서로 최대 10회 재시도.
+
+### 남은 일 / 아이디어
+- 실제 NiceRF 데모보드 MCU 품번 확인(데모코드 rar 또는 판매처) → 다르면 design.py 의 U3 교체.
+- LoRa1280 데이터시트 기구도면으로 풋프린트 패드 치수 재확인.
+- 장거리용 LoRa1280F27(31.5×15.8 mm, TXEN/RXEN 필요) 변형은 미설계.
+- 펌웨어(듀얼 SX1280 MAVLink 링크)는 미작성. 핀맵은 firmware/board_pins.h.

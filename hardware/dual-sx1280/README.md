@@ -17,7 +17,7 @@ NiceRF **LoRa1280 시리즈 데모보드**(SX1280 ranging demo board)의 구성(
 | 호스트 | J3 JST-SH 1.0 mm 4핀: 1 = +5 V, 2 = TX(PA9), 3 = RX(PA10), 4 = GND |
 | 전원 | 5 V 입력 → AP2112K-3.3 (600 mA) |
 | 펌웨어 기록 | 아랫면 SWD 패드(SWDIO/SWCLK/NRST/3V3/GND) 또는 BOOT0 패드 + USART1 ROM 부트로더 |
-| 표시 | LED 2개(아랫면): PB8 녹색(무선 A), PB9 파랑(무선 B) |
+| 표시 | LED 2개(아랫면): PA12 녹색(무선 A), PA15 파랑(무선 B). PA15는 JTDI 겸용이라 펌웨어에서 JTAG을 끄고 SWD만 켜야 합니다(SWJ_CFG=010) |
 
 핀 정의는 [firmware/board_pins.h](firmware/board_pins.h)에 있습니다.
 
@@ -52,8 +52,23 @@ NiceRF **LoRa1280 시리즈 데모보드**(SX1280 ranging demo board)의 구성(
 4. LCSC 품번은 일부만 넣었습니다. 비어 있는 품번과 재고는 직접 확인해야 합니다. MCU, LED, 모듈이 해당합니다.
 5. LoRa1280 모듈은 JLC 부품이 아니어서 수납땜해야 합니다. BOM과 CPL에서도 빠져 있습니다.
 
+## 검증 결과 (2026-11-12)
+| 검사 | 결과 |
+|---|---|
+| 회로도 넷리스트와 `design.py` 대조 (`check_netlist.py sch`) | PASS, 넷 31개 |
+| PCB 넷과 `design.py` 대조 (`check_netlist.py pcb`) | PASS |
+| KiCad DRC (`drc.py`, 보고서 `docs/drc_report.txt`) | 오류 0, 미연결 0, 경고 4 |
+| 코트야드 겹침 (앞·뒷면 각각) | 0 |
+
+- 경고 4건은 모두 `starved_thermal`입니다. 서멀 스포크가 1개만 붙은 GND 패드라는 뜻이고, 연결 자체는 되어 있습니다.
+- 배선 통계는 트랙 약 620 mm, 비아 219개입니다. 비아 중 112개는 GND 스티칭 비아입니다.
+- 회로도 ERC는 KiCad 7 CLI로 돌릴 수 없어서 하지 않았습니다. 대신 넷리스트를 1:1로 대조하고, 출력 핀 중복 같은 핀 타입 검사를 했습니다.
+- 배선은 자동배선기 결과입니다. 발주 전에 KiCad에서 한 번 열어 육안으로 검토하길 권합니다. 특히 RF 주변, 전원 트랙 폭, 실크 위치를 보세요.
+
 ## 제조 (JLCPCB 기준)
 - 4층, 1.0 mm, 외층 1 oz 기준입니다. 50 Ω 계산 근거는 L1-L2 프리프레그 7628 약 0.21 mm입니다.
 - 최소 트랙과 간격은 0.15 / 0.15 mm, 비아는 0.45 / 0.25 mm입니다.
 - `fab/dual_sx1280_gerbers.zip`, `fab/bom_jlcpcb.csv`, `fab/cpl_jlcpcb.csv`를 사용합니다.
 - SMT 실장은 양면입니다. 윗면에는 MCU와 LDO, 아랫면에는 커넥터와 LED가 있습니다.
+- CPL의 회전값은 KiCad 기준입니다. JLC 미리보기에서 U3, U4, J1~J3, LED의 방향을 꼭 확인하세요.
+- 실크 일부(U2, J1, J2 표기)는 보드 밖에 걸쳐 있어 제조 시 잘립니다. 기능에는 영향이 없습니다.

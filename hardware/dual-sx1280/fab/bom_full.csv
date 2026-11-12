@@ -1,0 +1,22 @@
+Qty,Designators,Value,Footprint,MPN,LCSC,Assembly
+2,C1 C7,1u,C_0402_1005Metric,CL05A105KA5NQNC,C52923,SMT
+3,C11 C2 C9,10u,C_0603_1608Metric,CL10A106KP8NNNC,C19702,SMT
+7,C10 C12 C3 C4 C5 C6 C8,100n,C_0402_1005Metric,CL05B104KO5NNNC,C1525,SMT
+1,D1,GRN,LED_0402_1005Metric,0402 green LED,,SMT
+1,D2,BLU,LED_0402_1005Metric,0402 blue LED,,SMT
+1,J1,U.FL ANT-A,U.FL_Hirose_U.FL-R-SMT-1_Vertical,U.FL-R-SMT-1(10),C88374,SMT
+1,J2,U.FL ANT-B,U.FL_Hirose_U.FL-R-SMT-1_Vertical,U.FL-R-SMT-1(10),C88374,SMT
+1,J3,UART/5V JST-SH,JST_SH_SM04B-SRSS-TB_1x04-1MP_P1.00mm_Horizontal,SM04B-SRSS-TB(LF)(SN),C160404,SMT
+1,JP1,TCXO_A sel,SolderJumper-3_P1.3mm_Bridged12_RoundedPad1.0x1.5mm,,,not a part (pad)
+1,JP2,TCXO_B sel,SolderJumper-3_P1.3mm_Bridged12_RoundedPad1.0x1.5mm,,,not a part (pad)
+1,R1,10k,R_0402_1005Metric,0402WGF1002TCE,C25744,SMT
+2,R2 R3,1k,R_0402_1005Metric,0402WGF1001TCE,C11702,SMT
+1,TP1,SWDIO,TestPoint_Pad_D1.0mm,,,not a part (pad)
+1,TP2,SWCLK,TestPoint_Pad_D1.0mm,,,not a part (pad)
+1,TP3,NRST,TestPoint_Pad_D1.0mm,,,not a part (pad)
+1,TP4,3V3,TestPoint_Pad_D1.0mm,,,not a part (pad)
+1,TP5,GND,TestPoint_Pad_D1.0mm,,,not a part (pad)
+1,TP6,BOOT0,TestPoint_Pad_D1.0mm,,,not a part (pad)
+2,U1 U2,LoRa1280,NiceRF_LoRa1280_16x16mm,NiceRF LoRa1280,,hand-solder
+1,U3,STM32F103CBU6,QFN-48-1EP_7x7mm_P0.5mm_EP5.6x5.6mm,STM32F103CBU6,,SMT
+1,U4,AP2112K-3.3,SOT-23-5,AP2112K-3.3TRG1,C51118,SMT
