@@ -452,6 +452,36 @@ class Router:
                     done += 1
                     break
                 if not placed:
+                    # wider search: outward 0.6..2.4 mm, lateral +-1.2 mm, straight (possibly diagonal) stub
+                    cands = []
+                    for r in np.arange(0.6, 2.45, 0.1):
+                        for lat in np.arange(-1.2, 1.25, 0.1):
+                            vx = base[0] + d[0] * r + d[1] * lat
+                            vy = base[1] + d[1] * r + d[0] * lat
+                            cands.append((math.hypot(r, lat * 1.5), vx, vy))
+                    cands.sort()
+                    pd = geom_dist(g)
+                    for _, vx, vy in cands:
+                        if not (0 < vx < BOARD_W and 0 < vy < BOARD_H):
+                            continue
+                        iy, ix = cell_of(vx, vy)
+                        vx, vy = float(XS[ix]), float(YS[iy])
+                        if not via_ok[iy, ix]:
+                            continue
+                        ok = True
+                        n = max(8, int(math.hypot(vx - px, vy - py) / 0.05))
+                        for t in range(1, n + 1):
+                            jy, jx = cell_of(px + (vx - px) * t / n, py + (vy - py) * t / n)
+                            if not track_ok[0, jy, jx] and pd[jy, jx] > 0:
+                                ok = False
+                                break
+                        if ok:
+                            self.commit(net, [(0, (px, py), (vx, vy))], [(vx, vy)], w,
+                                        {(li, iy, ix) for li in range(NL)})
+                            placed = True
+                            done += 1
+                            break
+                if not placed:
                     skipped.append(pad.GetNumber())
         return done, skipped
 
