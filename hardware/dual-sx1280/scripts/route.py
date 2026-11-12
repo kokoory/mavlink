@@ -733,36 +733,41 @@ def main(seed=0, tries=10):
         qf = R.qfn_gnd()
         fo = R.qfn_fanout()
         fails = []
-        # power first (wide), so signals flow around it
+        R.fixed_mode = False
+
+        def route_any(net):
+            if net in POWER_NETS:
+                return R.route_net(net, 0.25) or R.route_net(net, 0.2)
+            return R.route_net(net, 0.15)
+        # power first (wide), so signals flow around it; power is rip-up-able too
         for net in ("+3V3", "+5V"):
-            if not (R.route_net(net, 0.25) or R.route_net(net, 0.2)):
+            if not route_any(net):
                 fails.append(net)
         rest = [n for n in order_signal if n not in failed_first]
         if attempt > 0:
             rnd.shuffle(rest)
-        R.fixed_mode = False
         queue = failed_first + rest
         rips = {}
         guard = 0
         while queue and guard < 200:
             guard += 1
             net = queue.pop(0)
-            if R.route_net(net, 0.15):
+            if route_any(net):
                 continue
             if rips.get(net, 0) >= 4:
                 fails.append(net)
                 continue
             rips[net] = rips.get(net, 0) + 1
-            bl = R.blockers(net, 0.15)
+            bl = R.blockers(net, 0.2 if net in POWER_NETS else 0.15)
             if not bl:
                 fails.append(net)
                 continue
             for b in bl:
                 R.ripup(b)
             print(f"  rip-up for {net}: {sorted(bl)}", flush=True)
-            if not R.route_net(net, 0.15):
+            if not route_any(net):
                 fails.append(net)
-            queue = sorted(bl) + queue
+            queue = sorted(bl, key=lambda n: (n not in POWER_NETS, n)) + queue
         R.fixed_mode = True
         gf = R.gnd_fanout() if not fails else []
         print(f"attempt {attempt}: fanout={fo} qfn_gnd_fail={qf} net fails={fails} "

@@ -1,15 +1,11 @@
 ** Drc report for /home/user/mavlink/hardware/dual-sx1280/kicad/dual_sx1280.kicad_pcb **
-** Created on 2026-11-12 12:31:04 **
+** Created on 2026-11-12 12:52:17 **
 
-** Found 8 DRC violations **
+** Found 5 DRC violations **
 [starved_thermal]: Thermal relief connection to zone incomplete (zone min spoke count 2; actual 1)
     Local override; Severity: warning
     @(100.0000 mm, 100.0000 mm): Zone [GND] on B.Cu
     @(115.8850 mm, 124.4000 mm): Pad 1 [GND] of D1 on B.Cu
-[starved_thermal]: Thermal relief connection to zone incomplete (zone min spoke count 2; actual 1)
-    Local override; Severity: warning
-    @(100.0000 mm, 100.0000 mm): Zone [GND] on F.Cu
-    @(103.4800 mm, 120.3000 mm): Pad 2 [GND] of C5 on F.Cu
 [clearance]: Clearance violation (zone clearance 0.2000 mm; actual 0.0000 mm)
     Local override; Severity: error
     @(-0.9000 mm, -0.3000 mm): Polygon on F.Cu
@@ -24,12 +20,6 @@
 [isolated_copper]: Isolated copper fill
     Local override; Severity: warning
     @(100.0000 mm, 100.0000 mm): Zone [GND] on In2.Cu
-[items_not_allowed]: Items not allowed (keepout area)
-    Rule: keepout area; Severity: error
-    @(102.5200 mm, 120.3000 mm): Pad 1 [+3V3] of C5 on F.Cu
-[items_not_allowed]: Items not allowed (keepout area)
-    Rule: keepout area; Severity: error
-    @(103.4800 mm, 120.3000 mm): Pad 2 [GND] of C5 on F.Cu
 
 ** Found 52 unconnected pads **
 [unconnected_items]: Missing connection between items
@@ -50,28 +40,32 @@
     @(118.0000 mm, 124.0000 mm): Pad 1 [+3V3] of TP4 on B.Cu
 [unconnected_items]: Missing connection between items
     Local override; Severity: error
-    @(104.5625 mm, 122.2500 mm): Pad 1 [+3V3] of U3 on F.Cu
     @(105.2500 mm, 121.5625 mm): Pad 48 [+3V3] of U3 on F.Cu
+    @(104.5625 mm, 122.2500 mm): Pad 1 [+3V3] of U3 on F.Cu
 [unconnected_items]: Missing connection between items
     Local override; Severity: error
     @(105.8250 mm, 118.7000 mm): Pad 1 [+3V3] of C9 on F.Cu
     @(106.7000 mm, 119.3000 mm): Pad 3 [+3V3] of JP2 on B.Cu
 [unconnected_items]: Missing connection between items
     Local override; Severity: error
-    @(111.4375 mm, 122.2500 mm): Pad 36 [+3V3] of U3 on F.Cu
     @(112.9000 mm, 121.6800 mm): Pad 1 [+3V3] of C3 on F.Cu
+    @(111.4375 mm, 122.2500 mm): Pad 36 [+3V3] of U3 on F.Cu
 [unconnected_items]: Missing connection between items
     Local override; Severity: error
-    @(101.5200 mm, 118.7000 mm): Pad 1 [+3V3] of C10 on F.Cu
-    @(102.5200 mm, 120.3000 mm): Pad 1 [+3V3] of C5 on F.Cu
+    @(105.2500 mm, 121.5625 mm): Pad 48 [+3V3] of U3 on F.Cu
+    @(104.4200 mm, 120.2000 mm): Pad 1 [+3V3] of C5 on F.Cu
 [unconnected_items]: Missing connection between items
     Local override; Severity: error
-    @(102.0000 mm, 128.0800 mm): Pad 1 [+3V3] of C7 on F.Cu
     @(102.0000 mm, 126.0800 mm): Pad 1 [+3V3] of C6 on F.Cu
+    @(102.0000 mm, 128.0800 mm): Pad 1 [+3V3] of C7 on F.Cu
 [unconnected_items]: Missing connection between items
     Local override; Severity: error
-    @(115.8800 mm, 119.0000 mm): Pad 1 [+3V3] of C12 on B.Cu
+    @(105.8250 mm, 118.7000 mm): Pad 1 [+3V3] of C9 on F.Cu
+    @(104.4200 mm, 120.2000 mm): Pad 1 [+3V3] of C5 on F.Cu
+[unconnected_items]: Missing connection between items
+    Local override; Severity: error
     @(113.6750 mm, 119.0000 mm): Pad 1 [+3V3] of C11 on B.Cu
+    @(115.8800 mm, 119.0000 mm): Pad 1 [+3V3] of C12 on B.Cu
 [unconnected_items]: Missing connection between items
     Local override; Severity: error
     @(112.9000 mm, 129.0800 mm): Pad 1 [+3V3] of C4 on F.Cu
@@ -86,20 +80,16 @@
     @(104.5625 mm, 126.2500 mm): Pad 9 [+3V3] of U3 on F.Cu
 [unconnected_items]: Missing connection between items
     Local override; Severity: error
-    @(106.7000 mm, 119.3000 mm): Pad 3 [+3V3] of JP2 on B.Cu
-    @(105.2500 mm, 121.5625 mm): Pad 48 [+3V3] of U3 on F.Cu
-[unconnected_items]: Missing connection between items
-    Local override; Severity: error
-    @(112.9000 mm, 121.6800 mm): Pad 1 [+3V3] of C3 on F.Cu
     @(113.6750 mm, 119.0000 mm): Pad 1 [+3V3] of C11 on B.Cu
+    @(112.9000 mm, 121.6800 mm): Pad 1 [+3V3] of C3 on F.Cu
 [unconnected_items]: Missing connection between items
     Local override; Severity: error
-    @(104.5625 mm, 122.2500 mm): Pad 1 [+3V3] of U3 on F.Cu
-    @(102.5200 mm, 120.3000 mm): Pad 1 [+3V3] of C5 on F.Cu
-[unconnected_items]: Missing connection between items
-    Local override; Severity: error
-    @(118.0000 mm, 124.0000 mm): Pad 1 [+3V3] of TP4 on B.Cu
     @(115.8500 mm, 125.8625 mm): Pad 5 [+3V3] of U4 on F.Cu
+    @(118.0000 mm, 124.0000 mm): Pad 1 [+3V3] of TP4 on B.Cu
+[unconnected_items]: Missing connection between items
+    Local override; Severity: error
+    @(101.5200 mm, 118.7000 mm): Pad 1 [+3V3] of C10 on F.Cu
+    @(104.4200 mm, 120.2000 mm): Pad 1 [+3V3] of C5 on F.Cu
 [unconnected_items]: Missing connection between items
     Local override; Severity: error
     @(104.5625 mm, 122.2500 mm): Pad 1 [+3V3] of U3 on F.Cu
@@ -110,8 +100,8 @@
     @(115.8500 mm, 125.8625 mm): Pad 5 [+3V3] of U4 on F.Cu
 [unconnected_items]: Missing connection between items
     Local override; Severity: error
-    @(115.8500 mm, 125.8625 mm): Pad 5 [+3V3] of U4 on F.Cu
     @(112.9000 mm, 121.6800 mm): Pad 1 [+3V3] of C3 on F.Cu
+    @(115.8500 mm, 125.8625 mm): Pad 5 [+3V3] of U4 on F.Cu
 [unconnected_items]: Missing connection between items
     Local override; Severity: error
     @(111.4375 mm, 122.2500 mm): Pad 36 [+3V3] of U3 on F.Cu
@@ -126,8 +116,8 @@
     @(117.5250 mm, 106.5000 mm): Pad 3 [+3V3] of U2 on B.Cu
 [unconnected_items]: Missing connection between items
     Local override; Severity: error
-    @(103.4800 mm, 120.3000 mm): Pad 2 [GND] of C5 on F.Cu
-    @(103.9500 mm, 120.4750 mm): Pad 2 [GND] of J2 on B.Cu
+    @(115.8850 mm, 124.4000 mm): Pad 1 [GND] of D1 on B.Cu
+    @(115.7000 mm, 123.6000 mm): Pad 1 [GND] of JP1 on F.Cu
 [unconnected_items]: Missing connection between items
     Local override; Severity: error
     @(104.5625 mm, 125.2500 mm): Pad 7 [NRST] of U3 on F.Cu
