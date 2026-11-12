@@ -1,11 +1,11 @@
 ** Drc report for /home/user/mavlink/hardware/dual-sx1280/kicad/dual_sx1280.kicad_pcb **
-** Created on 2026-11-12 13:23:57 **
+** Created on 2026-11-12 13:50:01 **
 
-** Found 10 DRC violations **
-[solder_mask_bridge]: Front solder mask aperture bridges items with different nets
-    Rule: board setup solder mask min width; Severity: error
-    @(107.8250 mm, 121.8250 mm): Via [GND] on F.Cu - B.Cu
-    @(107.7500 mm, 121.5625 mm): Pad 43 [<no net>] of U3 on F.Cu
+** Found 5 DRC violations **
+[starved_thermal]: Thermal relief connection to zone incomplete (zone min spoke count 2; actual 1)
+    Local override; Severity: warning
+    @(100.0000 mm, 100.0000 mm): Zone [GND] on B.Cu
+    @(108.5000 mm, 127.8000 mm): Pad 4 [GND] of J3 on B.Cu
 [starved_thermal]: Thermal relief connection to zone incomplete (zone min spoke count 2; actual 1)
     Local override; Severity: warning
     @(100.0000 mm, 100.0000 mm): Zone [GND] on B.Cu
@@ -17,41 +17,21 @@
 [starved_thermal]: Thermal relief connection to zone incomplete (zone min spoke count 2; actual 1)
     Local override; Severity: warning
     @(100.0000 mm, 100.0000 mm): Zone [GND] on B.Cu
-    @(114.9200 mm, 119.0000 mm): Pad 2 [GND] of C12 on B.Cu
-[starved_thermal]: Thermal relief connection to zone incomplete (zone min spoke count 2; actual 1)
-    Local override; Severity: warning
-    @(100.0000 mm, 100.0000 mm): Zone [GND] on B.Cu
-    @(108.5000 mm, 127.8000 mm): Pad 4 [GND] of J3 on B.Cu
-[starved_thermal]: Thermal relief connection to zone incomplete (zone min spoke count 2; actual 1)
-    Local override; Severity: warning
-    @(100.0000 mm, 100.0000 mm): Zone [GND] on B.Cu
     @(115.8850 mm, 126.8000 mm): Pad 1 [GND] of D2 on B.Cu
-[clearance]: Clearance violation (netclass 'Power' clearance 0.1500 mm; actual 0.0750 mm)
-    Rule: netclass 'Power'; Severity: error
-    @(107.8250 mm, 121.8250 mm): Via [GND] on F.Cu - B.Cu
-    @(108.2500 mm, 121.5625 mm): Pad 42 [<no net>] of U3 on F.Cu
-[clearance]: Clearance violation (netclass 'Power' clearance 0.1500 mm; actual 0.0000 mm)
-    Rule: netclass 'Power'; Severity: error
-    @(107.8250 mm, 121.8250 mm): Via [GND] on F.Cu - B.Cu
-    @(107.7500 mm, 121.5625 mm): Pad 43 [<no net>] of U3 on F.Cu
-[hole_clearance]: Hole clearance violation (board setup constraints hole clearance 0.2000 mm; actual 0.1750 mm)
-    Rule: board setup constraints hole; Severity: error
-    @(108.2500 mm, 121.5625 mm): Pad 42 [<no net>] of U3 on F.Cu
-    @(107.8250 mm, 121.8250 mm): Via [GND] on F.Cu - B.Cu
-[hole_clearance]: Hole clearance violation (board setup constraints hole clearance 0.2000 mm; actual 0.0000 mm)
-    Rule: board setup constraints hole; Severity: error
-    @(107.7500 mm, 121.5625 mm): Pad 43 [<no net>] of U3 on F.Cu
-    @(107.8250 mm, 121.8250 mm): Via [GND] on F.Cu - B.Cu
+[starved_thermal]: Thermal relief connection to zone incomplete (zone min spoke count 2; actual 1)
+    Local override; Severity: warning
+    @(100.0000 mm, 100.0000 mm): Zone [GND] on B.Cu
+    @(114.9200 mm, 119.0000 mm): Pad 2 [GND] of C12 on B.Cu
 
 ** Found 5 unconnected pads **
 [unconnected_items]: Missing connection between items
     Local override; Severity: error
-    @(100.0000 mm, 100.0000 mm): Zone [GND] on F.Cu
     @(105.7100 mm, 130.6000 mm): Pad 2 [GND] of R1 on F.Cu
+    @(100.0000 mm, 100.0000 mm): Zone [GND] on F.Cu
 [unconnected_items]: Missing connection between items
     Local override; Severity: error
-    @(101.3750 mm, 121.5250 mm): Track [GND] on B.Cu, length 0.2000 mm
     @(102.0000 mm, 122.9200 mm): Pad 2 [GND] of C8 on F.Cu
+    @(101.3750 mm, 121.7250 mm): Track [GND] on B.Cu, length 2.8284 mm
 [unconnected_items]: Missing connection between items
     Local override; Severity: error
     @(107.3750 mm, 118.7000 mm): Pad 2 [GND] of C9 on F.Cu
@@ -62,8 +42,8 @@
     @(100.0000 mm, 100.0000 mm): Zone [GND] on F.Cu
 [unconnected_items]: Missing connection between items
     Local override; Severity: error
-    @(102.4800 mm, 118.7000 mm): Pad 2 [GND] of C10 on F.Cu
     @(103.9500 mm, 120.4750 mm): Pad 2 [GND] of J2 on B.Cu
+    @(102.4800 mm, 118.7000 mm): Pad 2 [GND] of C10 on F.Cu
 
 ** Found 0 Footprint errors **
 

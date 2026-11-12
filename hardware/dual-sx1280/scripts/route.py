@@ -408,12 +408,16 @@ class Router:
         return hit
 
     # --- GND fan-out --------------------------------------------------------
-    def gnd_fanout(self):
+    def gnd_fanout(self, only=None, skip=None):
         net = "GND"
         ni = NIDX[net]
         fails = []
+        self.fanned = getattr(self, "fanned", set())
         for entry in self.pads[net]:
             pad, lis, g, ref = entry
+            key = (ref, pad.GetNumber())
+            if key in self.fanned or (only and not only(ref)) or (skip and skip(ref)):
+                continue
             if ref == "U3":
                 continue
             if not lis:
@@ -440,11 +444,13 @@ class Router:
                     continue
                 segs, vias = path_to_items(p2)
                 self.commit(net, segs, vias, 0.2, set(p2))
+                self.fanned.add(key)
                 continue
             segs, _ = path_to_items(path)
             end = path[-1]
             vx, vy = float(XS[end[2]]), float(YS[end[1]])
             self.commit(net, segs, [(vx, vy)], 0.25, set(path))
+            self.fanned.add(key)
         return fails
 
     # --- QFN ground: VSS pins straight into the exposed pad, EP thermal vias ---
@@ -734,6 +740,8 @@ def main(seed=0, tries=10):
         t0 = time.time()
         qf = R.qfn_gnd()
         fo = R.qfn_fanout()
+        # GND vias for small passives first (decoupling quality + they must not get boxed in)
+        g1 = R.gnd_fanout(only=lambda ref: ref[0] in "CRDU" and ref not in ("U1", "U2", "U3"))
         fails = []
         R.fixed_mode = False
 
@@ -773,7 +781,7 @@ def main(seed=0, tries=10):
         R.fixed_mode = True
         nst = R.stitch() if not fails else 0
         gf = R.gnd_fanout() if not fails else []
-        print(f"attempt {attempt}: fanout={fo} qfn_gnd_fail={qf} net fails={fails} "
+        print(f"attempt {attempt}: fanout={fo} early gnd misses={g1} qfn_gnd_fail={qf} net fails={fails} "
               f"gnd fanout misses={gf} ({time.time() - t0:.1f}s)", flush=True)
         if os.environ.get("ROUTE_DEBUG"):
             R.to_board()
