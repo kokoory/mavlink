@@ -548,43 +548,39 @@ class Router:
         return n
 
 
-def main(seed=0, tries=8):
+def main(seed=0, tries=10):
     # long radio nets first, short local nets afterwards
     order_signal = ["B_NSS", "B_SCK", "B_MISO", "B_MOSI", "B_BUSY", "B_DIO1", "B_NRESET",
                     "A_NSS", "A_SCK", "A_MISO", "A_MOSI", "A_BUSY", "A_DIO1", "A_NRESET",
                     "UART_TX", "UART_RX", "SWDIO", "SWCLK", "NRST", "BOOT0",
                     "LED_A", "LED_A_K", "LED_B", "LED_B_K", "A_TCXO", "B_TCXO"]
     assert set(order_signal) == {n for n in NETNAMES if n not in POWER_NETS and n not in RF_NETS}
-    order_power = ["+3V3", "+5V"]
     rnd = random.Random(seed)
-    best = None
     failed_first = []
+    best = None
     for attempt in range(tries):
         board = pcbnew.LoadBoard(PCB)
-        # remove previous routing (keep locked RF tracks)
         for t in list(board.GetTracks()):
             if not t.IsLocked():
                 board.Remove(t)
         R = Router(board)
-        # register fixed RF copper as tree of RF nets
         t0 = time.time()
         qf = R.qfn_gnd()
         fo = R.qfn_fanout()
-        print("qfn fanout placed/skipped:", fo)
-        order = failed_first + [n for n in order_signal if n not in failed_first]
-        if attempt > 0 and not failed_first:
-            rnd.shuffle(order)
-        order_power = ["+3V3", "+5V"] if "+5V" not in failed_first else ["+5V", "+3V3"]
         fails = []
-        for net in order:
+        # power first (wide), so signals flow around it
+        for net in ("+3V3", "+5V"):
+            if not (R.route_net(net, 0.25) or R.route_net(net, 0.2)):
+                fails.append(net)
+        rest = [n for n in order_signal if n not in failed_first]
+        if attempt > 0:
+            rnd.shuffle(rest)
+        for net in failed_first + rest:
             if not R.route_net(net, 0.15):
                 fails.append(net)
-        for net in order_power:
-            ok = R.route_net(net, 0.3) or R.route_net(net, 0.2)
-            if not ok:
-                fails.append(net)
         gf = R.gnd_fanout() if not fails else []
-        print(f"attempt {attempt}: qfn gnd fails={qf} net fails={fails} gnd fanout misses={gf} ({time.time() - t0:.1f}s)")
+        print(f"attempt {attempt}: fanout={fo} qfn_gnd_fail={qf} net fails={fails} "
+              f"gnd fanout misses={gf} ({time.time() - t0:.1f}s)", flush=True)
         if os.environ.get("ROUTE_DEBUG"):
             R.to_board()
             board.Save(os.environ["ROUTE_DEBUG"])
