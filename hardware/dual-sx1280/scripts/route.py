@@ -391,6 +391,70 @@ class Router:
             self.commit(net, segs, [], 0.15, set(path))
         return fails
 
+    # --- QFN dog-bone fan-out: stub + via per used signal/power pin ----------
+    def qfn_fanout(self, ref="U3", rows=(0.75, 1.35)):
+        fp = [f for f in self.board.GetFootprints() if f.GetReference() == ref][0]
+        c = fp.GetPosition()
+        qx, qy = mm(c.x) - OX, mm(c.y) - OY
+        done, skipped = 0, []
+        side_pads = {}
+        for pad in fp.Pads():
+            net = pad.GetNetname()
+            if not net or net == "GND":
+                continue
+            p = pad.GetPosition()
+            px, py = mm(p.x) - OX, mm(p.y) - OY
+            dx, dy = px - qx, py - qy
+            if abs(dx) > abs(dy):
+                d = (1 if dx > 0 else -1, 0)
+            else:
+                d = (0, 1 if dy > 0 else -1)
+            side_pads.setdefault(d, []).append((pad, px, py, net))
+        for d, lst in side_pads.items():
+            lst.sort(key=lambda t: t[1] * abs(d[1]) + t[2] * abs(d[0]))
+            for k, (pad, px, py, net) in enumerate(lst):
+                ni = NIDX[net]
+                g = pad_geom(pad)
+                # outer end of the pad along d
+                if d[0]:
+                    edge = g[3] if d[0] > 0 else g[1]
+                    base = (edge, py)
+                else:
+                    edge = g[4] if d[1] > 0 else g[2]
+                    base = (px, edge)
+                w = 0.25 if net in POWER_NETS else 0.15
+                track_ok, via_ok = masks_for(self.W, ni, w)
+                placed = False
+                pin_no = int(pad.GetNumber())
+                order = rows if pin_no % 2 else rows[::-1]
+                for r in order:
+                    vx, vy = base[0] + d[0] * r, base[1] + d[1] * r
+                    iy, ix = cell_of(vx, vy)
+                    vx, vy = float(XS[ix]), float(YS[iy])
+                    if not via_ok[iy, ix]:
+                        continue
+                    # stub legality: sample along the stub on F.Cu
+                    ok = True
+                    n = 12
+                    for t in range(1, n + 1):
+                        sx = px + (vx - px) * t / n
+                        sy = py + (vy - py) * t / n
+                        jy, jx = cell_of(sx, sy)
+                        if not track_ok[0, jy, jx] and geom_dist(g)[jy, jx] > 0:
+                            ok = False
+                            break
+                    if not ok:
+                        continue
+                    stub_end = (vx, vy)
+                    cells = {(li, iy, ix) for li in range(NL)}
+                    self.commit(net, [(0, (px, py), stub_end)], [stub_end], w, cells)
+                    placed = True
+                    done += 1
+                    break
+                if not placed:
+                    skipped.append(pad.GetNumber())
+        return done, skipped
+
     # --- one multi-pin net ----------------------------------------------------
     def route_net(self, net, w):
         ni = NIDX[net]
@@ -505,6 +569,8 @@ def main(seed=0, tries=8):
         # register fixed RF copper as tree of RF nets
         t0 = time.time()
         qf = R.qfn_gnd()
+        fo = R.qfn_fanout()
+        print("qfn fanout placed/skipped:", fo)
         order = failed_first + [n for n in order_signal if n not in failed_first]
         if attempt > 0 and not failed_first:
             rnd.shuffle(order)
