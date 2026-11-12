@@ -61,6 +61,8 @@ class World:
         n = len(NETNAMES)
         self.d = np.full((NL, n, NY, NX), np.inf, np.float32)      # distance to copper of net
         self.padd = np.full((NL, n, NY, NX), np.inf, np.float32)   # distance to pads of net only
+        self.dfix = np.full((NL, n, NY, NX), np.inf, np.float32)   # pads + fixed copper (not rip-up-able)
+        self.vias_fixed = {i: [] for i in range(n)}
         self.track_block = np.zeros((NL, NY, NX), bool)
         self.track_keepouts = {li: [] for li in range(NL)}
         self.via_block = np.zeros((NY, NX), bool)
@@ -81,19 +83,23 @@ class World:
         t = np.clip(((GX - ax) * vx + (GY - ay) * vy) / L2, 0, 1)
         return np.hypot(GX - (ax + t * vx), GY - (ay + t * vy))
 
-    def add(self, li, ni, dist, pad=False):
+    def add(self, li, ni, dist, pad=False, fixed=False):
         np.minimum(self.d[li, ni], dist, out=self.d[li, ni])
         if pad:
             np.minimum(self.padd[li, ni], dist, out=self.padd[li, ni])
+        if pad or fixed:
+            np.minimum(self.dfix[li, ni], dist, out=self.dfix[li, ni])
 
-    def add_seg(self, li, ni, a, b, w):
-        self.add(li, ni, self.seg_dist(a[0], a[1], b[0], b[1]) - w / 2)
+    def add_seg(self, li, ni, a, b, w, fixed=False):
+        self.add(li, ni, self.seg_dist(a[0], a[1], b[0], b[1]) - w / 2, fixed=fixed)
 
-    def add_via(self, ni, x, y):
+    def add_via(self, ni, x, y, fixed=False):
         dist = np.hypot(GX - x, GY - y) - VIA_D / 2
         for li in range(NL):
-            self.add(li, ni, dist)
+            self.add(li, ni, dist, fixed=fixed)
         self.vias[ni].append((x, y))
+        if fixed:
+            self.vias_fixed[ni].append((x, y))
 
 
 def pad_geom(pad):
@@ -147,11 +153,11 @@ def load_world(board):
         ni = NIDX[t.GetNetname()]
         if t.GetClass() == "PCB_VIA":
             p = t.GetPosition()
-            W.add_via(ni, mm(p.x) - OX, mm(p.y) - OY)
+            W.add_via(ni, mm(p.x) - OX, mm(p.y) - OY, fixed=True)
         else:
             li = LAYERS.index(t.GetLayer())
             a, b = t.GetStart(), t.GetEnd()
-            W.add_seg(li, ni, (mm(a.x) - OX, mm(a.y) - OY), (mm(b.x) - OX, mm(b.y) - OY), mm(t.GetWidth()))
+            W.add_seg(li, ni, (mm(a.x) - OX, mm(a.y) - OY), (mm(b.x) - OX, mm(b.y) - OY), mm(t.GetWidth()), fixed=True)
     for z in board.Zones():
         if not z.GetIsRuleArea():
             continue
@@ -168,11 +174,12 @@ def load_world(board):
 
 
 # --------------------------------------------------------------------------- legality masks
-def masks_for(W, ni, w, ep_ok=False):
+def masks_for(W, ni, w, ep_ok=False, relaxed=False):
     hw = w / 2
     other = np.empty((NL, NY, NX), np.float32)
+    src = W.dfix if relaxed else W.d
     for li in range(NL):
-        tmp = W.d[li].copy()
+        tmp = src[li].copy()
         tmp[ni] = np.inf
         o = tmp.min(axis=0)
         for (lis, dist) in getattr(W, "nc_obst", []):
@@ -326,18 +333,65 @@ class Router:
         self.board = board
         self.W, self.pads = load_world(board)
         self.netinfo = {n: board.FindNet(n) for n in NETNAMES}
-        self.items = []     # (kind, net, data)
+        self.items = []     # (kind, net, data, fixed)
         self.tree = {}      # net -> set of cells
+        self.tree_fixed = {}
+        self.fixed_mode = True
+        self.relaxed = False
 
-    def commit(self, net, segs, vias, w, cells=()):
+    def commit(self, net, segs, vias, w, cells=(), fixed=None):
         ni = NIDX[net]
+        if fixed is None:
+            fixed = self.fixed_mode
         for (li, a, b) in segs:
-            self.W.add_seg(li, ni, a, b, w)
-            self.items.append(("seg", net, (li, a, b, w)))
+            self.W.add_seg(li, ni, a, b, w, fixed=fixed)
+            self.items.append(("seg", net, (li, a, b, w), fixed))
         for (x, y) in vias:
-            self.W.add_via(ni, x, y)
-            self.items.append(("via", net, (x, y)))
+            self.W.add_via(ni, x, y, fixed=fixed)
+            self.items.append(("via", net, (x, y), fixed))
         self.tree.setdefault(net, set()).update(cells)
+        if fixed:
+            self.tree_fixed.setdefault(net, set()).update(cells)
+
+    def ripup(self, net):
+        ni = NIDX[net]
+        self.items = [it for it in self.items if not (it[1] == net and not it[3])]
+        self.W.d[:, ni] = self.W.dfix[:, ni]
+        self.W.vias[ni] = list(self.W.vias_fixed[ni])
+        self.tree[net] = set(self.tree_fixed.get(net, set()))
+
+    def blockers(self, net, w):
+        """Route `net` ignoring rip-up-able copper, return the signal nets its path collides with."""
+        ni = NIDX[net]
+        snap = (self.W.d[:, ni].copy(), list(self.W.vias[ni]), len(self.items), set(self.tree.get(net, set())))
+        self.relaxed = True
+        ok = self._route_net(net, w)
+        self.relaxed = False
+        new = self.items[snap[2]:]
+        self.W.d[:, ni] = snap[0]
+        self.W.vias[ni] = snap[1]
+        del self.items[snap[2]:]
+        self.tree[net] = snap[3]
+        if not ok:
+            return None
+        hit = set()
+        routed = {it[1] for it in self.items if not it[3]} - {net}
+        for it in new:
+            if it[0] == "seg":
+                li, a, b, ww = it[2]
+                n = max(2, int(math.hypot(b[0] - a[0], b[1] - a[1]) / 0.05) + 1)
+                pts = [(li, a[0] + (b[0] - a[0]) * t / (n - 1), a[1] + (b[1] - a[1]) * t / (n - 1)) for t in range(n)]
+                need = CLR + ww / 2 + MARGIN
+            else:
+                pts = [(li, it[2][0], it[2][1]) for li in range(NL)]
+                need = CLR + VIA_D / 2 + MARGIN
+            for (li, x, y) in pts:
+                iy, ix = cell_of(x, y)
+                for other in routed:
+                    oi = NIDX[other]
+                    if self.W.d[li, oi, iy, ix] < need and self.W.dfix[li, oi, iy, ix] >= need:
+                        hit.add(other)
+        return hit
 
     # --- GND fan-out --------------------------------------------------------
     def gnd_fanout(self):
@@ -519,7 +573,7 @@ class Router:
             remaining.sort(key=dist)
             e = remaining.pop(0)
             tgt = pad_cells(e)
-            track_ok, via_ok = masks_for(self.W, ni, w)
+            track_ok, via_ok = masks_for(self.W, ni, w, relaxed=self.relaxed)
             path = astar(track_ok, via_ok, tgt, tree, bbox_of(tree))
             if path is None:
                 # undo staged items of this net
@@ -534,7 +588,7 @@ class Router:
         return True
 
     def to_board(self):
-        for kind, net, data in self.items:
+        for kind, net, data, _fixed in self.items:
             if kind == "seg":
                 li, a, b, w = data
                 t = pcbnew.PCB_TRACK(self.board)
@@ -605,9 +659,30 @@ def main(seed=0, tries=10):
         rest = [n for n in order_signal if n not in failed_first]
         if attempt > 0:
             rnd.shuffle(rest)
-        for net in failed_first + rest:
+        R.fixed_mode = False
+        queue = failed_first + rest
+        rips = {}
+        guard = 0
+        while queue and guard < 200:
+            guard += 1
+            net = queue.pop(0)
+            if R.route_net(net, 0.15):
+                continue
+            if rips.get(net, 0) >= 4:
+                fails.append(net)
+                continue
+            rips[net] = rips.get(net, 0) + 1
+            bl = R.blockers(net, 0.15)
+            if not bl:
+                fails.append(net)
+                continue
+            for b in bl:
+                R.ripup(b)
+            print(f"  rip-up for {net}: {sorted(bl)}", flush=True)
             if not R.route_net(net, 0.15):
                 fails.append(net)
+            queue = sorted(bl) + queue
+        R.fixed_mode = True
         gf = R.gnd_fanout() if not fails else []
         print(f"attempt {attempt}: fanout={fo} qfn_gnd_fail={qf} net fails={fails} "
               f"gnd fanout misses={gf} ({time.time() - t0:.1f}s)", flush=True)
