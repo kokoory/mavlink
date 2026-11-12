@@ -434,7 +434,7 @@ class Router:
                     iy, ix = cell_of(vx, vy)
                     tgt |= {(li, iy, ix) for li in range(NL)}
                 track_ok2, via_ok2 = masks_for(self.W, ni, 0.2)
-                p2 = astar(track_ok2, via_ok2, src, tgt, bbox_of(src), max_expand=400000) if tgt else None
+                p2 = astar(track_ok2, via_ok2, src, tgt, bbox_of(tgt), max_expand=1_500_000) if tgt else None
                 if p2 is None:
                     fails.append(f"{ref}.{pad.GetNumber()}")
                     continue
@@ -698,8 +698,12 @@ class Router:
                 for li in range(NL):
                     tmp = self.W.d[li, :, iy, ix].copy()
                     tmp[ni] = np.inf
-                    if tmp.min() < CLR + VIA_D / 2 + 0.05:
+                    lim = CLR + VIA_D / 2 + 0.05
+                    if tmp.min() < lim:
                         ok = False
+                    for (lis, dist) in getattr(self.W, "nc_obst", []):
+                        if li in lis and dist[iy, ix] < lim:
+                            ok = False
                 if not ok or EDGE_D[iy, ix] < EDGE + VIA_D / 2 + 0.05 or self.W.via_block[iy, ix]:
                     continue
                 if self.W.padd[0, ni, iy, ix] < VIA_D / 2 + 0.05 or self.W.padd[2, ni, iy, ix] < VIA_D / 2 + 0.05:
@@ -767,6 +771,7 @@ def main(seed=0, tries=10):
                 fails.append(net)
             queue = sorted(bl, key=lambda n: (n not in POWER_NETS, n)) + queue
         R.fixed_mode = True
+        nst = R.stitch() if not fails else 0
         gf = R.gnd_fanout() if not fails else []
         print(f"attempt {attempt}: fanout={fo} qfn_gnd_fail={qf} net fails={fails} "
               f"gnd fanout misses={gf} ({time.time() - t0:.1f}s)", flush=True)
@@ -775,7 +780,6 @@ def main(seed=0, tries=10):
             board.Save(os.environ["ROUTE_DEBUG"])
             return 2
         if not fails and not qf:
-            nst = R.stitch()
             npr = R.prune()
             print(f"stitching vias: {nst}, pruned dangling items: {npr}")
             R.to_board()
