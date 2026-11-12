@@ -427,7 +427,18 @@ class Router:
             path = astar(track_ok, via_ok, src, set(), bbox_of(src), max_expand=60000, allow_via=False,
                          goal_fn=goal)
             if path is None:
-                fails.append(f"{ref}.{pad.GetNumber()}")
+                # fallback: connect to the nearest existing GND via (any layer, vias allowed)
+                tgt = set()
+                for (vx, vy) in self.W.vias[ni]:
+                    iy, ix = cell_of(vx, vy)
+                    tgt |= {(li, iy, ix) for li in range(NL)}
+                track_ok2, via_ok2 = masks_for(self.W, ni, 0.2)
+                p2 = astar(track_ok2, via_ok2, src, tgt, bbox_of(src), max_expand=400000) if tgt else None
+                if p2 is None:
+                    fails.append(f"{ref}.{pad.GetNumber()}")
+                    continue
+                segs, vias = path_to_items(p2)
+                self.commit(net, segs, vias, 0.2, set(p2))
                 continue
             segs, _ = path_to_items(path)
             end = path[-1]
@@ -601,71 +612,55 @@ class Router:
         return True
 
     def prune(self):
-        """Remove dangling copper: unused fan-out vias/stubs and track ends that touch nothing."""
+        """Remove dangling copper: vias touched on <2 layers (non-GND) and track ends touching nothing."""
         pads = {}
         for fp in self.board.GetFootprints():
             for pad in fp.Pads():
                 if pad.GetNetname():
                     pads.setdefault(pad.GetNetname(), []).append(pad)
-        fixed_rf = [(mm(t.GetStart().x) - OX, mm(t.GetStart().y) - OY, mm(t.GetEnd().x) - OX, mm(t.GetEnd().y) - OY,
-                     t.GetNetname(), LAYERS.index(t.GetLayer()) if t.GetLayer() in LAYERS else -1)
-                    for t in self.board.GetTracks() if t.GetClass() != "PCB_VIA"]
+        fixed = []
+        for t in self.board.GetTracks():
+            if t.GetClass() != "PCB_VIA" and t.GetLayer() in LAYERS:
+                fixed.append((t.GetNetname(), LAYERS.index(t.GetLayer()),
+                              (mm(t.GetStart().x) - OX, mm(t.GetStart().y) - OY),
+                              (mm(t.GetEnd().x) - OX, mm(t.GetEnd().y) - OY)))
 
-        def on_pad(net, li, x, y):
-            for pad in pads.get(net, []):
-                if pad.IsOnLayer(LAYERS[li]) and pad.HitTest(P(x, y)):
-                    return True
-            return False
+        def on_seg(pt, a, b):
+            vx, vy = b[0] - a[0], b[1] - a[1]
+            L2 = vx * vx + vy * vy
+            t = 0 if L2 == 0 else max(0, min(1, ((pt[0] - a[0]) * vx + (pt[1] - a[1]) * vy) / L2))
+            return math.hypot(pt[0] - a[0] - t * vx, pt[1] - a[1] - t * vy) < 1e-3
 
-        def key(x, y):
-            return (round(x, 3), round(y, 3))
+        def on_pad(net, li, pt):
+            return any(pad.IsOnLayer(LAYERS[li]) and pad.HitTest(P(*pt)) for pad in pads.get(net, []))
+
         removed = 0
-        changed = True
-        while changed:
-            changed = False
-            ends = {}
-            for idx, it in enumerate(self.items):
-                if it[0] == "seg":
-                    li, a, b, w = it[2]
-                    for pt in (a, b):
-                        ends.setdefault((it[1], li, key(*pt)), []).append(idx)
-            for (x1, y1, x2, y2, net, li) in fixed_rf:
-                for pt in ((x1, y1), (x2, y2)):
-                    ends.setdefault((net, li, key(*pt)), []).append(-1)
-            vias = {(it[1], key(*it[2])): idx for idx, it in enumerate(self.items) if it[0] == "via"}
+        while True:
+            segs = [(i, it[1], it[2][0], it[2][1], it[2][2]) for i, it in enumerate(self.items) if it[0] == "seg"]
+            segs_all = [(i, n, li, a, b) for (i, n, li, a, b) in segs] + [(-1, n, li, a, b) for (n, li, a, b) in fixed]
+            vias = [(i, it[1], it[2]) for i, it in enumerate(self.items) if it[0] == "via"]
             drop = set()
-            for idx, it in enumerate(self.items):
-                net = it[1]
-                if it[0] == "via":
-                    if net == "GND":
-                        continue
-                    n = sum(len(ends.get((net, li, key(*it[2])), [])) for li in range(NL))
-                    if n <= 1:
-                        drop.add(idx)
-                else:
-                    li, a, b, w = it[2]
-                    for pt, other in ((a, b), (b, a)):
-                        k = key(*pt)
-                        if len(ends.get((net, li, k), [])) > 1 or (net, k) in vias or on_pad(net, li, *pt):
-                            continue
-                        # touches nothing except possibly mid-segment of another track: check point-on-segment
-                        hit = False
-                        for jdx, jt in enumerate(self.items):
-                            if jdx != idx and jt[0] == "seg" and jt[1] == net and jt[2][0] == li:
-                                _, c, d, ww = jt[2]
-                                vx, vy = d[0] - c[0], d[1] - c[1]
-                                L2 = vx * vx + vy * vy
-                                t = 0 if L2 == 0 else max(0, min(1, ((pt[0] - c[0]) * vx + (pt[1] - c[1]) * vy) / L2))
-                                if math.hypot(pt[0] - c[0] - t * vx, pt[1] - c[1] - t * vy) < 1e-3:
-                                    hit = True
-                                    break
-                        if not hit:
-                            drop.add(idx)
+            for (i, net, v) in vias:
+                if net == "GND":
+                    continue
+                layers = {li for (_, n, li, a, b) in segs_all if n == net and on_seg(v, a, b)}
+                layers |= {li for li in range(NL) if on_pad(net, li, v)}
+                if len(layers) < 2:
+                    drop.add(i)
+            for (i, net, li, a, b) in segs:
+                for pt in (a, b):
+                    ok = on_pad(net, li, pt)
+                    if not ok:
+                        ok = any(n == net and math.hypot(v[0] - pt[0], v[1] - pt[1]) < 1e-3 for (_, n, v) in vias)
+                    if not ok:
+                        ok = any(j != i and n == net and l2 == li and on_seg(pt, c, d) for (j, n, l2, c, d) in segs_all)
+                    if not ok:
+                        drop.add(i)
                         break
-            if drop:
-                self.items = [it for i, it in enumerate(self.items) if i not in drop]
-                removed += len(drop)
-                changed = True
+            if not drop:
+                break
+            self.items = [it for i, it in enumerate(self.items) if i not in drop]
+            removed += len(drop)
         return removed
 
     def to_board(self):

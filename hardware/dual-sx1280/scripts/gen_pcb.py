@@ -270,6 +270,11 @@ def finish(board, fps, nets):
                 tracks=False, vias=True, name="rfA_novia")
     add_keepout(board, [pcbnew.F_Cu, pcbnew.In1_Cu, pcbnew.In2_Cu, pcbnew.B_Cu], 1.8, 15.8, 3.15, 19.6,
                 tracks=False, vias=True, name="rfB_novia")
+    # no GND pour around the solder-jumper bridges (their copper bridge is a net-tie polygon)
+    for ref, layer in (("JP1", pcbnew.F_Cu), ("JP2", pcbnew.B_Cu)):
+        x, y = PARTS[ref]["pos"]
+        add_keepout(board, [layer], x - 2.1, y - 1.05, x + 2.1, y + 1.05, tracks=False, vias=False,
+                    pours=True, name=f"{ref}_nopour")
     # RF traces: module ANT pad -> U.FL centre pin, straight, 0.35 mm (~50 ohm CPWG over 0.21 mm prepreg)
     for net, ref, jref, layer in (("RF_A", "U1", "J1", pcbnew.F_Cu), ("RF_B", "U2", "J2", pcbnew.B_Cu)):
         a = pad_xy(fps[ref], "9")
