@@ -131,9 +131,9 @@ NETS = {
     "UART_TX": ["U3.30", "J3.2"],   # PA9  -> host RX
     "UART_RX": ["U3.31", "J3.3"],   # PA10 <- host TX
     # LEDs
-    "LED_A":   ["U3.45", "R2.1"],   # PB8
+    "LED_A":   ["U3.33", "R2.1"],   # PA12
     "LED_A_K": ["R2.2", "D1.2"],
-    "LED_B":   ["U3.46", "R3.1"],   # PB9
+    "LED_B":   ["U3.38", "R3.1"],   # PA15 (JTDI: use SWD-only remap)
     "LED_B_K": ["R3.2", "D2.2"],
     # Radio A on SPI1
     "A_NSS":    ["U3.14", "U1.8"],   # PA4
@@ -146,7 +146,7 @@ NETS = {
     "A_TCXO":   ["U1.14", "JP1.2"],
     "RF_A":     ["U1.9", "J1.1"],
     # Radio B on SPI2
-    "B_NSS":    ["U3.25", "U2.8"],   # PB12
+    "B_NSS":    ["U3.32", "U2.8"],   # PA11 (software NSS)
     "B_SCK":    ["U3.26", "U2.7"],   # PB13 SPI2_SCK
     "B_MISO":   ["U3.27", "U2.5"],   # PB14 SPI2_MISO
     "B_MOSI":   ["U3.28", "U2.6"],   # PB15 SPI2_MOSI
@@ -162,7 +162,7 @@ NO_CONNECT = [
     "U1.1", "U1.2", "U2.1", "U2.2",             # DIO2/DIO3 unused (all IRQs routed to DIO1)
     "U3.2", "U3.3", "U3.4", "U3.5", "U3.6",     # PC13-15, PD0/PD1 (no crystal, HSI used)
     "U3.10", "U3.12", "U3.13",                  # PA0, PA2, PA3 spare
-    "U3.20", "U3.32", "U3.33", "U3.38",         # PB2, PA11, PA12, PA15 spare
+    "U3.20", "U3.25", "U3.45", "U3.46",         # PB2, PB12, PB8, PB9 spare
     "U3.39", "U3.40", "U3.41", "U3.42", "U3.43",  # PB3-PB7 spare
     "U4.4",                                     # AP2112 NC pin
 ]

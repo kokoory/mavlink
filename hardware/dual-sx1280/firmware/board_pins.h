@@ -33,8 +33,8 @@
 #define RADIO_B_MISO_PIN       14     /* PB14 SPI2_MISO */
 #define RADIO_B_MOSI_PORT      GPIOB
 #define RADIO_B_MOSI_PIN       15     /* PB15 SPI2_MOSI */
-#define RADIO_B_NSS_PORT       GPIOB
-#define RADIO_B_NSS_PIN        12     /* PB12 GPIO (software NSS) */
+#define RADIO_B_NSS_PORT       GPIOA
+#define RADIO_B_NSS_PIN        11     /* PA11 GPIO (software NSS) */
 #define RADIO_B_BUSY_PORT      GPIOB
 #define RADIO_B_BUSY_PIN       10     /* PB10 input */
 #define RADIO_B_DIO1_PORT      GPIOA
@@ -50,9 +50,10 @@
 #define HOST_RX_PIN            10     /* PA10 <- J3 pin 3 */
 
 /* ---- Status LEDs (active high, 1k series) ------------------------------- */
-#define LED_A_PORT             GPIOB
-#define LED_A_PIN              8      /* PB8  D1 green, bottom side */
-#define LED_B_PORT             GPIOB
-#define LED_B_PIN              9      /* PB9  D2 blue,  bottom side */
+#define LED_A_PORT             GPIOA
+#define LED_A_PIN              12     /* PA12 D1 green, bottom side */
+#define LED_B_PORT             GPIOA
+#define LED_B_PIN              15     /* PA15 D2 blue,  bottom side. PA15 = JTDI after reset:
+                                         set AFIO_MAPR SWJ_CFG = 010 (JTAG off, SWD on) first */
 
-/* Spare, unconnected: PA0, PA2, PA3 (USART2), PA11, PA12, PA15, PB2, PB3-PB7, PC13-PC15 */
+/* Spare, unconnected: PA0, PA2, PA3 (USART2), PB2, PB3-PB9, PB12, PC13-PC15 */
