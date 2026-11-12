@@ -349,6 +349,7 @@ class Router:
         self.items = []     # (kind, net, data, fixed)
         self.tree = {}      # net -> set of cells
         self.tree_fixed = {}
+        self.pad_extra = {}     # (ref, pin) -> cells of that pin's fan-out via (joins the tree with the pin)
         self.fixed_mode = True
         self.relaxed = False
 
@@ -524,8 +525,8 @@ class Router:
                     if not ok:
                         continue
                     stub_end = (vx, vy)
-                    cells = {(li, iy, ix) for li in range(NL)}
-                    self.commit(net, [(0, (px, py), stub_end)], [stub_end], w, cells)
+                    self.pad_extra[(ref, pad.GetNumber())] = {(li, iy, ix) for li in range(NL)}
+                    self.commit(net, [(0, (px, py), stub_end)], [stub_end], w)
                     placed = True
                     done += 1
                     break
@@ -554,8 +555,8 @@ class Router:
                                 ok = False
                                 break
                         if ok:
-                            self.commit(net, [(0, (px, py), (vx, vy))], [(vx, vy)], w,
-                                        {(li, iy, ix) for li in range(NL)})
+                            self.pad_extra[(ref, pad.GetNumber())] = {(li, iy, ix) for li in range(NL)}
+                            self.commit(net, [(0, (px, py), (vx, vy))], [(vx, vy)], w)
                             placed = True
                             done += 1
                             break
@@ -580,7 +581,9 @@ class Router:
         entries = sorted(self.pads[net], key=lambda e: (e[3] != "U3", e[3]))
         if net in RF_NETS:
             return True
-        tree = set(pad_cells(entries[0]))
+        def pcells(e):
+            return pad_cells(e) | self.pad_extra.get((e[3], e[0].GetNumber()), set())
+        tree = set(pcells(entries[0]))
         # existing copper of this net (e.g. fixed RF tracks) is part of the tree
         tree |= self.tree.get(net, set())
         remaining = entries[1:]
@@ -596,7 +599,7 @@ class Router:
                 return abs((b[0] + b[2]) / 2 - tcx) + abs((b[1] + b[3]) / 2 - tcy)
             remaining.sort(key=dist)
             e = remaining.pop(0)
-            tgt = pad_cells(e)
+            tgt = pcells(e)
             track_ok, via_ok = masks_for(self.W, ni, w, relaxed=self.relaxed)
             path = astar(track_ok, via_ok, tgt, tree, bbox_of(tree))
             if path is None:

@@ -1,7 +1,7 @@
 ** Drc report for /home/user/mavlink/hardware/dual-sx1280/kicad/dual_sx1280.kicad_pcb **
-** Created on 2026-11-12 12:54:23 **
+** Created on 2026-11-12 12:57:04 **
 
-** Found 10 DRC violations **
+** Found 2 DRC violations **
 [starved_thermal]: Thermal relief connection to zone incomplete (zone min spoke count 2; actual 1)
     Local override; Severity: warning
     @(100.0000 mm, 100.0000 mm): Zone [GND] on B.Cu
@@ -10,32 +10,6 @@
     Local override; Severity: warning
     @(100.0000 mm, 100.0000 mm): Zone [GND] on F.Cu
     @(112.9000 mm, 120.7200 mm): Pad 2 [GND] of C3 on F.Cu
-[clearance]: Clearance violation (zone clearance 0.2000 mm; actual 0.0000 mm)
-    Local override; Severity: error
-    @(-0.9000 mm, -0.3000 mm): Polygon on F.Cu
-    @(100.0000 mm, 100.0000 mm): Zone [GND] on F.Cu
-[clearance]: Clearance violation (zone clearance 0.2000 mm; actual 0.0000 mm)
-    Local override; Severity: error
-    @(-0.9000 mm, 0.3000 mm): Polygon on B.Cu
-    @(100.0000 mm, 100.0000 mm): Zone [GND] on B.Cu
-[via_dangling]: Via is not connected or connected on only one layer
-    Local override; Severity: warning
-    @(103.3750 mm, 126.2750 mm): Via [+3V3] on F.Cu - B.Cu
-[via_dangling]: Via is not connected or connected on only one layer
-    Local override; Severity: warning
-    @(113.2250 mm, 122.2750 mm): Via [+3V3] on F.Cu - B.Cu
-[via_dangling]: Via is not connected or connected on only one layer
-    Local override; Severity: warning
-    @(110.7750 mm, 130.2250 mm): Via [+3V3] on F.Cu - B.Cu
-[via_dangling]: Via is not connected or connected on only one layer
-    Local override; Severity: warning
-    @(107.2250 mm, 120.5250 mm): Via [BOOT0] on F.Cu - B.Cu
-[via_dangling]: Via is not connected or connected on only one layer
-    Local override; Severity: warning
-    @(113.2250 mm, 123.2750 mm): Via [SWDIO] on F.Cu - B.Cu
-[via_dangling]: Via is not connected or connected on only one layer
-    Local override; Severity: warning
-    @(113.2250 mm, 125.2750 mm): Via [UART_TX] on F.Cu - B.Cu
 
 ** Found 7 unconnected pads **
 [unconnected_items]: Missing connection between items
@@ -48,8 +22,8 @@
     @(115.8500 mm, 125.8625 mm): Pad 5 [+3V3] of U4 on F.Cu
 [unconnected_items]: Missing connection between items
     Local override; Severity: error
-    @(111.4375 mm, 122.2500 mm): Track [+3V3] on F.Cu, length 1.7877 mm
     @(106.7250 mm, 119.2750 mm): Track [+3V3] on B.Cu, length 0.8485 mm
+    @(111.4375 mm, 122.2500 mm): Track [+3V3] on F.Cu, length 1.7877 mm
 [unconnected_items]: Missing connection between items
     Local override; Severity: error
     @(102.0000 mm, 122.9200 mm): Pad 2 [GND] of C8 on F.Cu
