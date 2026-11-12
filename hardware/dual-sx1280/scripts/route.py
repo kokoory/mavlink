@@ -34,6 +34,7 @@ EDGE = 0.3
 VIA_D, VIA_DRILL = 0.45, 0.25
 VIA_COST = 14.0          # in grid steps (0.7 mm)
 INNER_COST = 1.1         # slight preference for outer layers
+RF_EXTRA = 0.15          # RF netclass clearance 0.3 vs default 0.15
 HW = 1.4                 # weighted A* (faster, slightly sub-optimal paths)
 LAYERS = [pcbnew.F_Cu, pcbnew.In2_Cu, pcbnew.B_Cu]
 LNAME = {pcbnew.F_Cu: "F", pcbnew.In2_Cu: "In2", pcbnew.B_Cu: "B"}
@@ -109,13 +110,18 @@ def pad_geom(pad):
     if pad.GetShape() == pcbnew.PAD_SHAPE_CIRCLE:
         return ("circle", cx, cy, mm(pad.GetSize().x) / 2)
     bb = pad.GetBoundingBox()
-    return ("rect", mm(bb.GetX()) - OX, mm(bb.GetY()) - OY, mm(bb.GetRight()) - OX, mm(bb.GetBottom()) - OY)
+    r = 0.0
+    if pad.GetShape() == pcbnew.PAD_SHAPE_ROUNDRECT:
+        r = mm(pad.GetRoundRectCornerRadius())
+    return ("rect", mm(bb.GetX()) - OX, mm(bb.GetY()) - OY, mm(bb.GetRight()) - OX, mm(bb.GetBottom()) - OY, r)
 
 
 def geom_dist(g):
+    """Signed-ish distance to the pad copper (exact for circles and rounded rectangles)."""
     if g[0] == "circle":
         return np.hypot(GX - g[1], GY - g[2]) - g[3]
-    return World.rect_dist(*g[1:])
+    x1, y1, x2, y2, r = g[1:6]
+    return World.rect_dist(x1 + r, y1 + r, x2 - r, y2 - r) - r
 
 
 def keepout_rect(z):
@@ -158,7 +164,10 @@ def load_world(board):
             li = LAYERS.index(t.GetLayer())
             a, b = t.GetStart(), t.GetEnd()
             W.add_seg(li, ni, (mm(a.x) - OX, mm(a.y) - OY), (mm(b.x) - OX, mm(b.y) - OY), mm(t.GetWidth()), fixed=True)
-    for z in board.Zones():
+    zones = list(board.Zones())
+    for fp in board.GetFootprints():
+        zones += list(fp.Zones())
+    for z in zones:
         if not z.GetIsRuleArea():
             continue
         r = keepout_rect(z)
@@ -180,6 +189,8 @@ def masks_for(W, ni, w, ep_ok=False, relaxed=False):
     src = W.dfix if relaxed else W.d
     for li in range(NL):
         tmp = src[li].copy()
+        for rn in RF_NETS:
+            tmp[NIDX[rn]] -= RF_EXTRA
         tmp[ni] = np.inf
         o = tmp.min(axis=0)
         for (lis, dist) in getattr(W, "nc_obst", []):
@@ -281,9 +292,11 @@ def cell_of(x, y):
 
 def pad_cells(pad_entry):
     pad, lis, g, ref = pad_entry
-    inside = geom_dist(g) <= -0.0001 if g[0] == "rect" else geom_dist(g) <= 0
-    # keep only cells comfortably inside the pad
-    inside = geom_dist(g) <= -min(0.03, 0.0)
+    # cells whose centre lies inside the real pad copper (rounded corners excluded), 20 um margin
+    inside = geom_dist(g) <= -0.02
+    if g[0] == "rect":
+        x1, y1, x2, y2 = g[1:5]
+        inside &= (GX > x1 + 0.02) & (GX < x2 - 0.02) & (GY > y1 + 0.02) & (GY < y2 - 0.02)
     iy, ix = np.nonzero(inside)
     if len(iy) == 0:
         cy, cx = cell_of((g[1] + g[3]) / 2, (g[2] + g[4]) / 2) if g[0] == "rect" else cell_of(g[1], g[2])
@@ -587,6 +600,74 @@ class Router:
                 tree |= {(li, iy, ix) for li in range(NL)}
         return True
 
+    def prune(self):
+        """Remove dangling copper: unused fan-out vias/stubs and track ends that touch nothing."""
+        pads = {}
+        for fp in self.board.GetFootprints():
+            for pad in fp.Pads():
+                if pad.GetNetname():
+                    pads.setdefault(pad.GetNetname(), []).append(pad)
+        fixed_rf = [(mm(t.GetStart().x) - OX, mm(t.GetStart().y) - OY, mm(t.GetEnd().x) - OX, mm(t.GetEnd().y) - OY,
+                     t.GetNetname(), LAYERS.index(t.GetLayer()) if t.GetLayer() in LAYERS else -1)
+                    for t in self.board.GetTracks() if t.GetClass() != "PCB_VIA"]
+
+        def on_pad(net, li, x, y):
+            for pad in pads.get(net, []):
+                if pad.IsOnLayer(LAYERS[li]) and pad.HitTest(P(x, y)):
+                    return True
+            return False
+
+        def key(x, y):
+            return (round(x, 3), round(y, 3))
+        removed = 0
+        changed = True
+        while changed:
+            changed = False
+            ends = {}
+            for idx, it in enumerate(self.items):
+                if it[0] == "seg":
+                    li, a, b, w = it[2]
+                    for pt in (a, b):
+                        ends.setdefault((it[1], li, key(*pt)), []).append(idx)
+            for (x1, y1, x2, y2, net, li) in fixed_rf:
+                for pt in ((x1, y1), (x2, y2)):
+                    ends.setdefault((net, li, key(*pt)), []).append(-1)
+            vias = {(it[1], key(*it[2])): idx for idx, it in enumerate(self.items) if it[0] == "via"}
+            drop = set()
+            for idx, it in enumerate(self.items):
+                net = it[1]
+                if it[0] == "via":
+                    if net == "GND":
+                        continue
+                    n = sum(len(ends.get((net, li, key(*it[2])), [])) for li in range(NL))
+                    if n <= 1:
+                        drop.add(idx)
+                else:
+                    li, a, b, w = it[2]
+                    for pt, other in ((a, b), (b, a)):
+                        k = key(*pt)
+                        if len(ends.get((net, li, k), [])) > 1 or (net, k) in vias or on_pad(net, li, *pt):
+                            continue
+                        # touches nothing except possibly mid-segment of another track: check point-on-segment
+                        hit = False
+                        for jdx, jt in enumerate(self.items):
+                            if jdx != idx and jt[0] == "seg" and jt[1] == net and jt[2][0] == li:
+                                _, c, d, ww = jt[2]
+                                vx, vy = d[0] - c[0], d[1] - c[1]
+                                L2 = vx * vx + vy * vy
+                                t = 0 if L2 == 0 else max(0, min(1, ((pt[0] - c[0]) * vx + (pt[1] - c[1]) * vy) / L2))
+                                if math.hypot(pt[0] - c[0] - t * vx, pt[1] - c[1] - t * vy) < 1e-3:
+                                    hit = True
+                                    break
+                        if not hit:
+                            drop.add(idx)
+                        break
+            if drop:
+                self.items = [it for i, it in enumerate(self.items) if i not in drop]
+                removed += len(drop)
+                changed = True
+        return removed
+
     def to_board(self):
         for kind, net, data, _fixed in self.items:
             if kind == "seg":
@@ -692,7 +773,8 @@ def main(seed=0, tries=10):
             return 2
         if not fails and not qf:
             nst = R.stitch()
-            print(f"stitching vias: {nst}")
+            npr = R.prune()
+            print(f"stitching vias: {nst}, pruned dangling items: {npr}")
             R.to_board()
             board.Save(PCB)
             return 0

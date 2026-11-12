@@ -224,7 +224,7 @@ PRO_TEMPLATE = {
                       "min_silk_clearance": 0.0, "min_text_height": 0.5, "min_text_thickness": 0.08,
                       "max_error": 0.005, "allow_blind_buried_vias": False, "allow_microvias": False,
                       "use_height_for_length_calcs": True},
-            "rule_severities": {"silk_overlap": "ignore", "silk_over_copper": "ignore", "silk_edge_clearance": "ignore",
+            "rule_severities": {"starved_thermal": "warning", "silk_overlap": "ignore", "silk_over_copper": "ignore", "silk_edge_clearance": "ignore",
                                 "text_height": "ignore", "text_thickness": "ignore",
                                 "footprint_type_mismatch": "ignore", "lib_footprint_issues": "ignore",
                                 "lib_footprint_mismatch": "ignore"},
